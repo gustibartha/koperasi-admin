@@ -4,7 +4,7 @@ import { user } from "./schema";
 async function seed() {
   console.log("Sedang mengisi data pegawai...");
   
-  await db.insert(users).values([
+  await db.insert(user).values([
     {
       id: "emp-01",
       name: "Budi Santoso",
