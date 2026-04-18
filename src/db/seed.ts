@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { users } from "./schema";
+import { user } from "./schema";
 
 async function seed() {
   console.log("Sedang mengisi data pegawai...");
