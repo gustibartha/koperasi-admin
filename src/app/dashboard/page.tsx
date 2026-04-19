@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { db } from '@/db';
 import { user, attendances, leaves } from '@/db/schema';
 import { desc, eq, sql, and, gte, lte } from 'drizzle-orm';

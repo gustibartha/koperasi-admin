@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { db } from '@/db';
 import { user, performance } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
