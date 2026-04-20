@@ -1,97 +1,92 @@
+import { db } from "@/db";
+import { user, performance } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
+
 export const dynamic = 'force-dynamic';
-import { db } from '@/db';
-import { user, performance } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 
-export default async function PerformancePage() {
-  const daftarPegawai = await db.select().from(user);
-  const dataKinerja = await db
-    .select({
-      id: performance.id,
-      nama: user.name,
-      periode: performance.periode,
-      skor: performance.nilaiKinerja,
-      bonus: performance.bonusInsentif,
-      catatan: performance.catatan
-    })
-    .from(performance)
-    .leftJoin(user, eq(performance.userId, user.id))
-    .orderBy(desc(performance.createdAt));
+export default async function KinerjaPage() {
+  let allKinerja: any[] = [];
 
-  async function tambahNilai(formData: FormData) {
-    'use server';
-    await db.insert(performance).values({
-      userId: formData.get('userId') as string,
-      periode: formData.get('periode') as string,
-      nilaiKinerja: Number(formData.get('skor')),
-      bonusInsentif: Number(formData.get('bonus')),
-      catatan: formData.get('catatan') as string,
-      createdAt: new Date(),
-    });
-    revalidatePath('/dashboard/kinerja');
-    revalidatePath('/dashboard/payroll');
+  try {
+    const result = await db
+      .select({
+        id: performance.id,
+        name: user.name,
+        jabatan: user.jabatan,
+        bulan: performance.bulan,
+        nilai: performance.nilai,
+        evaluasi: performance.evaluasi,
+      })
+      .from(performance)
+      .leftJoin(user, eq(performance.userId, user.id))
+      .orderBy(desc(performance.bulan));
+      
+    allKinerja = result;
+  } catch (error) {
+    console.error("Gagal mengambil data kinerja:", error);
   }
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen font-sans">
-      <div className="max-w-6xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">Performance Management</h1>
-          <p className="text-slate-500 text-sm font-medium">Penilaian KPI & Pemberian Insentif Pegawai.</p>
-        </header>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-slate-800">Manajemen Kinerja Pegawai</h1>
+        <button className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          + Buat Evaluasi
+        </button>
+      </div>
 
-        {/* FORM INPUT NILAI */}
-        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 mb-8">
-          <h2 className="text-xs font-black text-blue-600 uppercase mb-4 tracking-[0.2em]">Input Penilaian Kinerja</h2>
-          <form action={tambahNilai} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <select name="userId" className="border p-3 rounded-2xl text-xs font-bold" required>
-              <option value="">Pilih Pegawai</option>
-              {daftarPegawai.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <input name="periode" placeholder="Periode (Jan 2026)" className="border p-3 rounded-2xl text-xs font-bold" required />
-            <input name="skor" type="number" placeholder="Skor KPI (1-100)" className="border p-3 rounded-2xl text-xs font-bold" required />
-            <input name="bonus" type="number" placeholder="Bonus Insentif (Rp)" className="border p-3 rounded-2xl text-xs font-bold" required />
-            <button type="submit" className="bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase hover:bg-emerald-600 transition-all">Simpan Nilai</button>
-            <textarea name="catatan" placeholder="Catatan Evaluasi" className="border p-3 rounded-2xl text-xs md:col-span-5 h-20" />
-          </form>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h3 className="font-bold text-slate-800">Daftar Evaluasi Bulanan</h3>
         </div>
-
-        {/* TABEL RANKING KINERJA */}
-        <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b text-[10px] font-black text-slate-400 uppercase">
-              <tr>
-                <th className="p-5">Pegawai & Periode</th>
-                <th className="p-5 text-center">Skor KPI</th>
-                <th className="p-5 text-center">Bonus Insentif</th>
-                <th className="p-5">Catatan HR</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {dataKinerja.map((k) => (
-                <tr key={k.id} className="hover:bg-slate-50 transition-all">
-                  <td className="p-5">
-                    <div className="font-bold text-slate-800 text-xs uppercase">{k.nama}</div>
-                    <div className="text-[10px] text-slate-400 font-bold">{k.periode}</div>
-                  </td>
-                  <td className="p-5 text-center">
-                    <span className={`px-4 py-1 rounded-full text-xs font-black ${
-                      Number(k.skor) >= 80 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {k.skor}
-                    </span>
-                  </td>
-                  <td className="p-5 text-center font-bold text-slate-600 text-xs">
-                    Rp {(k.bonus || 0).toLocaleString('id-ID')}
-                  </td>
-                  <td className="p-5 text-[10px] text-slate-500 italic max-w-xs truncate">
-                    "{k.catatan || '-'}"
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        
+        <div className="p-6">
+          {allKinerja.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100">
+                    <th className="pb-4 font-semibold">Nama Pegawai</th>
+                    <th className="pb-4 font-semibold">Bulan</th>
+                    <th className="pb-4 font-semibold">Nilai (0-100)</th>
+                    <th className="pb-4 font-semibold">Catatan Evaluasi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {allKinerja.map((item, index) => (
+                    <tr key={index} className="group hover:bg-slate-50 transition-colors">
+                      <td className="py-4">
+                        <p className="text-slate-700 font-medium">{item.name || "Anonim"}</p>
+                        <p className="text-slate-400 text-xs">{item.jabatan || "-"}</p>
+                      </td>
+                      <td className="py-4 text-slate-600 font-medium">{item.bulan}</td>
+                      <td className="py-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold ${item.nilai >= 80 ? 'text-emerald-500' : item.nilai >= 60 ? 'text-amber-500' : 'text-red-500'}`}>
+                            {item.nilai}
+                          </span>
+                          {/* Progress bar kecil */}
+                          <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${item.nilai >= 80 ? 'bg-emerald-500' : item.nilai >= 60 ? 'bg-amber-500' : 'bg-red-500'}`} 
+                              style={{ width: `${item.nilai}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 text-slate-500 text-sm max-w-xs truncate">
+                        {item.evaluasi || "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-slate-400 text-sm italic">Belum ada data evaluasi kinerja.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

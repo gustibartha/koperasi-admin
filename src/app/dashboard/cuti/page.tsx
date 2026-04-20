@@ -1,80 +1,96 @@
+import { db } from "@/db";
+import { user, leaves } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
+
+// WAJIB ADA: Agar Vercel selalu mengambil data terbaru dari Turso
 export const dynamic = 'force-dynamic';
-import { db } from '@/db';
-import { user, leaves } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 
-export default async function LeavePage() {
-  // Ambil data pengajuan cuti
-  const dataCuti = await db
-    .select({
-      id: leaves.id,
-      nama: user.name,
-      jabatan: user.jabatan,
-      jenis: leaves.jenisCuti,
-      mulai: leaves.tanggalMulai,
-      selesai: leaves.tanggalSelesai,
-      status: leaves.status,
-      alasan: leaves.alasan
-    })
-    .from(leaves)
-    .leftJoin(user, eq(leaves.userId, user.id))
-    .orderBy(desc(leaves.createdAt));
+export default async function ManajemenCutiPage() {
+  let allLeaves: any[] = [];
 
-  // Action: Fungsi untuk Manajer menyetujui/menolak
-  async function handleApproval(formData: FormData) {
-    'use server';
-    const id = Number(formData.get('id'));
-    const tindakan = formData.get('tindakan') as string;
-
-    await db.update(leaves)
-      .set({ status: tindakan })
-      .where(eq(leaves.id, id));
-
-    revalidatePath('/dashboard/cuti');
-    revalidatePath('/dashboard');
+  try {
+    // Ambil SEMUA data cuti dan gabungkan dengan nama pegawainya
+    // Diurutkan dari yang paling baru
+    const result = await db
+      .select({
+        id: leaves.id,
+        name: user.name,
+        jenis_cuti: leaves.jenisCuti,
+        status: leaves.status,
+        tanggal_mulai: leaves.tanggalMulai,
+        tanggal_selesai: leaves.tanggalSelesai,
+        keterangan: leaves.keterangan,
+      })
+      .from(leaves)
+      .leftJoin(user, eq(leaves.userId, user.id))
+      .orderBy(desc(leaves.tanggalMulai));
+      
+    allLeaves = result;
+  } catch (error) {
+    console.error("Gagal mengambil data cuti:", error);
   }
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen font-sans">
-      <div className="max-w-5xl mx-auto">
-        <header className="mb-10 text-center md:text-left">
-          <h1 className="text-3xl font-black text-slate-900 italic tracking-tighter uppercase">Leave Approval Panel</h1>
-          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Alur: Karyawan — Manajer</p>
-        </header>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-slate-800">Manajemen Cuti Pegawai</h1>
+        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          + Ajukan Cuti
+        </button>
+      </div>
 
-        <div className="grid gap-6">
-          {dataCuti.map((c) => (
-            <div key={c.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase">{c.jenis}</span>
-                  <span className={`text-[9px] font-black px-3 py-0.5 rounded-full ${c.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
-                    {c.status}
-                  </span>
-                </div>
-                <h2 className="text-xl font-black text-slate-800 uppercase leading-none">{c.nama}</h2>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{c.jabatan || 'Anggota Koperasi'}</p>
-                <div className="mt-4 text-[11px] font-bold bg-slate-50 p-4 rounded-2xl border border-slate-100 flex gap-6">
-                  <div className="text-slate-500">DARI: <span className="text-slate-900 ml-1">{c.mulai?.toLocaleDateString('id-ID')}</span></div>
-                  <div className="text-slate-500">S/D: <span className="text-slate-900 ml-1">{c.selesai?.toLocaleDateString('id-ID')}</span></div>
-                </div>
-              </div>
-
-              {/* TOMBOL AKSI MANAJER */}
-              <div className="flex gap-2">
-                {c.status === 'PENDING' ? (
-                  <form action={handleApproval} className="flex gap-2">
-                    <input type="hidden" name="id" value={c.id} />
-                    <button name="tindakan" value="REJECTED" className="px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl text-[10px] font-black uppercase hover:bg-red-50 hover:text-red-600 transition-all">Tolak</button>
-                    <button name="tindakan" value="APPROVED" className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase shadow-xl hover:bg-blue-600 transition-all">Setujui</button>
-                  </form>
-                ) : (
-                  <div className="text-[10px] font-bold text-slate-300 italic uppercase">Sudah Diproses</div>
-                )}
-              </div>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h3 className="font-bold text-slate-800">Semua Riwayat Cuti</h3>
+        </div>
+        
+        <div className="p-6">
+          {allLeaves.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100">
+                    <th className="pb-4 font-semibold">Nama Pegawai</th>
+                    <th className="pb-4 font-semibold">Jenis Cuti</th>
+                    <th className="pb-4 font-semibold">Tanggal</th>
+                    <th className="pb-4 font-semibold">Keterangan</th>
+                    <th className="pb-4 font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {allLeaves.map((item, index) => (
+                    <tr key={index} className="group hover:bg-slate-50 transition-colors">
+                      <td className="py-4 text-slate-700 font-medium">
+                        {item.name || "User Dihapus"}
+                      </td>
+                      <td className="py-4 text-slate-600 text-sm">{item.jenis_cuti}</td>
+                      <td className="py-4 text-slate-600 text-sm">
+                        {item.tanggal_mulai ? new Date(item.tanggal_mulai).toLocaleDateString('id-ID') : '-'} 
+                        <span className="mx-1">s/d</span> 
+                        {item.tanggal_selesai ? new Date(item.tanggal_selesai).toLocaleDateString('id-ID') : '-'}
+                      </td>
+                      <td className="py-4 text-slate-500 text-sm max-w-xs truncate">
+                        {item.keterangan || "-"}
+                      </td>
+                      <td className="py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          item.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600' :
+                          item.status === 'REJECTED' ? 'bg-red-50 text-red-600' :
+                          'bg-amber-50 text-amber-600'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-slate-400 text-sm italic">Belum ada riwayat pengajuan cuti.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
