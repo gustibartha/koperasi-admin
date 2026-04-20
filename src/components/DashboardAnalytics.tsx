@@ -27,13 +27,14 @@ export default function DashboardAnalytics({ dataGaji, dataKehadiran }: Analytic
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="bulan" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
               <YAxis 
-                tickFormatter={(value) => `${value/1000000}jt`} 
+                tickFormatter={(value) => `${value / 1000000}jt`} 
                 axisLine={false} 
                 tickLine={false} 
                 tick={{ fill: '#64748b' }} 
               />
+              {/* FIX: Menggunakan any pada formatter agar TypeScript tidak error */}
               <Tooltip 
-                formatter={(value: number) => `Rp ${value.toLocaleString('id-ID')}`} 
+                formatter={(value: any) => `Rp ${Number(value).toLocaleString('id-ID')}`} 
                 cursor={{ fill: '#f1f5f9' }}
               />
               <Bar dataKey="totalGaji" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Total Gaji" />
@@ -60,8 +61,9 @@ export default function DashboardAnalytics({ dataGaji, dataKehadiran }: Analytic
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
+              {/* FIX: Menggunakan any pada formatter agar TypeScript tidak error */}
               <Tooltip 
-                formatter={(value: number) => [`${value} Orang`, 'Jumlah']} 
+                formatter={(value: any) => [`${value} Orang`, 'Jumlah']} 
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               />
               <Legend verticalAlign="bottom" height={36} iconType="circle" />
