@@ -16,8 +16,12 @@ export async function POST(req: Request) {
     const isInside = distance <= 100; // Toleransi radius 100 meter
 
     const newAttendance = await db.insert(attendances).values({
-      userId, latitude: lat, longitude: long, checkIn: new Date(), isValid: isInside,
-    }).returning();
+      id: crypto.randomUUID(), // Wajib ada karena id adalah Primary Key
+  userId: userId,
+  tanggal: new Date(),
+  statusHadir: isInside ? "HADIR" : "ALPA", // Sesuaikan statusnya
+  jamMasuk: new Date().toLocaleTimeString("id-ID"),
+}).returning();
 
     // Kirim balik data jarak ke HP
     return NextResponse.json({ 
