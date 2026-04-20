@@ -1,29 +1,24 @@
 import { db } from "@/db";
-import { user, leaves, attendances } from "@/db/schema";
+import { user, leaves } from "@/db/schema";
 import { eq, and, lte, gte } from "drizzle-orm";
 
-// PAKSA halaman agar selalu mengambil data terbaru dari database
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  // 1. Inisialisasi data dengan array kosong (Default)
-  let activeLeaves = [];
-  let totalPegawai = 0;
-  let totalHadirHariIni = 0;
+  // Inisialisasi dengan tipe data yang jelas
+  let activeLeaves: any[] = []; 
+  let totalPegawai: number = 0;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayTimestamp = Math.floor(today.getTime() / 1000);
 
-  // 2. Gunakan TRY-CATCH agar jika tabel belum ada atau kueri error, website tidak mati
   try {
-    // Ambil Total Pegawai
     const usersData = await db.select().from(user);
     totalPegawai = usersData.length;
 
-    // Ambil Data Cuti yang disetujui untuk hari ini
-    // Kita bungkus join ini karena ini yang paling sering bikin error 500
-    activeLeaves = await db
+    // Kueri database
+    const result = await db
       .select({
         name: user.name,
         jenis_cuti: leaves.jenisCuti,
@@ -40,55 +35,58 @@ export default async function DashboardPage() {
         )
       );
       
+    activeLeaves = result;
+      
   } catch (error) {
-    console.error("Terjadi masalah saat mengambil data dashboard:", error);
-    // Kita biarkan variabel tetap pada nilai defaultnya agar halaman tidak crash
+    console.error("Database error:", error);
   }
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Dashboard Koperasi</h1>
       
-      {/* KOTAK STATISTIK */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-blue-500 p-4 rounded-lg text-white shadow">
-          <p className="text-sm">Total Pegawai</p>
-          <h2 className="text-3xl font-bold">{totalPegawai}</h2>
+        <div className="bg-blue-600 p-6 rounded-xl text-white shadow-lg">
+          <p className="text-sm opacity-80">Total Pegawai</p>
+          <h2 className="text-4xl font-bold">{totalPegawai}</h2>
         </div>
         
-        <div className="bg-green-500 p-4 rounded-lg text-white shadow">
-          <p className="text-sm">Pegawai Cuti (Hari Ini)</p>
-          <h2 className="text-3xl font-bold">{activeLeaves.length}</h2>
+        <div className="bg-emerald-600 p-6 rounded-xl text-white shadow-lg">
+          <p className="text-sm opacity-80">Pegawai Cuti Hari Ini</p>
+          <h2 className="text-4xl font-bold">{activeLeaves.length}</h2>
         </div>
 
-        <div className="bg-orange-500 p-4 rounded-lg text-white shadow">
-          <p className="text-sm">Status Database</p>
-          <h2 className="text-lg font-bold">Terhubung ke Turso</h2>
+        <div className="bg-slate-800 p-6 rounded-xl text-white shadow-lg">
+          <p className="text-sm opacity-80">Database Status</p>
+          <h2 className="text-xl font-bold">Terhubung</h2>
         </div>
       </div>
 
-      {/* TABEL PEGAWAI CUTI */}
-      <div className="bg-white p-4 rounded-lg shadow border">
-        <h3 className="font-semibold mb-4 text-gray-700">Daftar Pegawai Cuti Aktif</h3>
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h3 className="font-bold mb-4 text-slate-800 text-lg">Daftar Cuti Aktif</h3>
         {activeLeaves.length > 0 ? (
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2">Nama</th>
-                <th className="py-2">Jenis Cuti</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeLeaves.map((item, index) => (
-                <tr key={index} className="border-b last:border-0">
-                  <td className="py-2">{item.name || "N/A"}</td>
-                  <td className="py-2">{item.jenis_cuti}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-500">
+                  <th className="pb-3 font-semibold">Nama Pegawai</th>
+                  <th className="pb-3 font-semibold">Keterangan</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {activeLeaves.map((item, index) => (
+                  <tr key={index}>
+                    <td className="py-3 font-medium text-slate-700">{item.name || "Anonim"}</td>
+                    <td className="py-3 text-slate-600">{item.jenis_cuti}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <p className="text-gray-500 text-sm italic">Tidak ada pegawai yang cuti hari ini.</p>
+          <div className="text-center py-8 text-slate-400 italic">
+            Tidak ada pegawai yang cuti hari ini.
+          </div>
         )}
       </div>
     </div>
