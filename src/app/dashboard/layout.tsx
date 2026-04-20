@@ -30,6 +30,11 @@ export default function DashboardLayout({
   <a href="/dashboard/kinerja" className="flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors group">
     <span className="text-slate-300 group-hover:text-white">🏆 Manajemen Kinerja</span>
   </a>
+  <a href="/dashboard/absensi" className="flex items-center p-3 rounded-lg hover:bg-slate-800 group transition-colors">
+  <span className="text-slate-300 group-hover:text-white font-medium flex gap-3">
+    <span>📍</span> Absensi Kehadiran
+  </span>
+</a>
 
 </nav>
 

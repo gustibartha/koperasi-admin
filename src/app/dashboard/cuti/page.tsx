@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { db } from "@/db";
 import { user, leaves } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -34,9 +35,9 @@ export default async function ManajemenCutiPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Manajemen Cuti Pegawai</h1>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <Link href="/dashboard/cuti/ajukan" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
           + Ajukan Cuti
-        </button>
+        </Link>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
