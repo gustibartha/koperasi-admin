@@ -5,19 +5,17 @@ import { eq, and, lte, gte } from "drizzle-orm";
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  // Inisialisasi dengan tipe data yang jelas
   let activeLeaves: any[] = []; 
   let totalPegawai: number = 0;
 
+  // PERBAIKAN: Gunakan objek Date asli, bukan timestamp number
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayTimestamp = Math.floor(today.getTime() / 1000);
 
   try {
     const usersData = await db.select().from(user);
     totalPegawai = usersData.length;
 
-    // Kueri database
     const result = await db
       .select({
         name: user.name,
@@ -30,8 +28,9 @@ export default async function DashboardPage() {
       .where(
         and(
           eq(leaves.status, "APPROVED"),
-          lte(leaves.tanggalMulai, todayTimestamp),
-          gte(leaves.tanggalSelesai, todayTimestamp)
+          // Drizzle akan membandingkan Date dengan Date
+          lte(leaves.tanggalMulai, today), 
+          gte(leaves.tanggalSelesai, today)
         )
       );
       
@@ -43,51 +42,62 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Dashboard Koperasi</h1>
+      <h1 className="text-2xl font-bold mb-6 text-slate-800">Dashboard Koperasi</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-blue-600 p-6 rounded-xl text-white shadow-lg">
-          <p className="text-sm opacity-80">Total Pegawai</p>
-          <h2 className="text-4xl font-bold">{totalPegawai}</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-2xl text-white shadow-lg">
+          <p className="text-blue-100 text-sm font-medium">Total Pegawai</p>
+          <h2 className="text-4xl font-extrabold mt-1">{totalPegawai}</h2>
         </div>
         
-        <div className="bg-emerald-600 p-6 rounded-xl text-white shadow-lg">
-          <p className="text-sm opacity-80">Pegawai Cuti Hari Ini</p>
-          <h2 className="text-4xl font-bold">{activeLeaves.length}</h2>
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-2xl text-white shadow-lg">
+          <p className="text-emerald-100 text-sm font-medium">Pegawai Cuti Hari Ini</p>
+          <h2 className="text-4xl font-extrabold mt-1">{activeLeaves.length}</h2>
         </div>
 
-        <div className="bg-slate-800 p-6 rounded-xl text-white shadow-lg">
-          <p className="text-sm opacity-80">Database Status</p>
-          <h2 className="text-xl font-bold">Terhubung</h2>
+        <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-6 rounded-2xl text-white shadow-lg">
+          <p className="text-slate-300 text-sm font-medium">Status Sistem</p>
+          <h2 className="text-xl font-bold mt-2">Operasional</h2>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold mb-4 text-slate-800 text-lg">Daftar Cuti Aktif</h3>
-        {activeLeaves.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-slate-100 text-slate-500">
-                  <th className="pb-3 font-semibold">Nama Pegawai</th>
-                  <th className="pb-3 font-semibold">Keterangan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {activeLeaves.map((item, index) => (
-                  <tr key={index}>
-                    <td className="py-3 font-medium text-slate-700">{item.name || "Anonim"}</td>
-                    <td className="py-3 text-slate-600">{item.jenis_cuti}</td>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h3 className="font-bold text-slate-800">Daftar Cuti Aktif (Approved)</h3>
+        </div>
+        
+        <div className="p-6">
+          {activeLeaves.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-slate-400 text-xs uppercase tracking-wider">
+                    <th className="pb-4 font-semibold">Nama Pegawai</th>
+                    <th className="pb-4 font-semibold">Keterangan</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-slate-400 italic">
-            Tidak ada pegawai yang cuti hari ini.
-          </div>
-        )}
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {activeLeaves.map((item, index) => (
+                    <tr key={index} className="group">
+                      <td className="py-4 text-slate-700 font-medium group-hover:text-blue-600 transition-colors">
+                        {item.name || "User Tidak Dikenal"}
+                      </td>
+                      <td className="py-4">
+                        <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold">
+                          {item.jenis_cuti}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-slate-400 text-sm italic">Belum ada data cuti yang disetujui untuk hari ini.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
